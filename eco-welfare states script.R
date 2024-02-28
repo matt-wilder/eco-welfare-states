@@ -197,7 +197,7 @@ plot_cfa
 #assess Pierson correlation coefficient 
 cor.test(data$ws_robust, data$ghg_pop)
 
-# ggsave('plot_cfa.jpeg',plot_cfa, height = 4, width = 5, units = "in", dpi = 700)
+ggsave('FIG4.png',plot_cfa, height = 4, width = 5, units = "in", dpi = 300)
 
 
 ###############################
@@ -533,7 +533,6 @@ plot_cons
 #assess Pierson correlation coefficient 
 cor.test(data$ws_robust, data$ghg_cons)
 
-#ggsave('plot_cons.jpeg',plot_cons, height = 4, width = 5, units = "in", dpi = 700)
 
 # random effects 
 baseline_cons <- lmer(ghg_cons~1 + (1|id), data = subset(data, year < 2020)) 
@@ -668,7 +667,6 @@ plot_stringency
 #assess Pierson correlation coefficient 
 cor.test(data$ws_robust, data$stringency.index)
 
-# ggsave('plot_stringency.jpeg',plot_stringency, height = 4, width = 5, units = "in", dpi = 700)
 
 range(data$stringency, na.rm=T)
 
@@ -758,9 +756,6 @@ summary(b.be.mod_strin)
 
 
 
-
-
-
 ############################
 #  descriptive statistics  #
 ############################
@@ -791,8 +786,6 @@ UK_plotL1 <- ggplot()+
               annotate("text", x=2007, y=0.050, label= "knowledge-based services", size = 4)
 
 UK_plotL1
-
-
 
 
 UK_plotL2 <- ggplot(aes(x=year, y=employment/1000,shape = industry), data = subset(UKdata, industry == "steel" | industry == "chemicals" | industry == "coal" & year > 1985))+
@@ -841,14 +834,72 @@ UK_plotL3 <- ggplot(aes(x=year, y=employment/1000,shape = industry), data = subs
 UK_plotL3
 
 
-
+library('ggpubr')
 arrangement <- ggarrange(UK_plotL2, UK_plotL3, UK_plotL1, ncol = 3, nrow = 3)
 
 
+ggsave('FIG6.png',
+       arrangement, height = 9, width = 8.5, units = "in", dpi = 300)
+
+
+# emissions by source 
+denmark_data <- subset(data, country == "Denmark")
+uk_data <- subset(data, country == "United Kingdom")
+
+denmark_data$energy_per_capita <- denmark_data$ghg_energy * 1000 / denmark_data$population
+denmark_data$industry_per_capita <- (denmark_data$ghg_industry * 1000 + denmark_data$ghg_manufacturing_construction * 1000) / denmark_data$population
+uk_data$energy_per_capita <- uk_data$ghg_energy * 1000 / uk_data$population
+uk_data$industry_per_capita <- (uk_data$ghg_industry * 1000 + uk_data$ghg_manufacturing_construction * 1000) / uk_data$population
+
+
+combined_data <- rbind(
+  data.frame(country = "Denmark", year = denmark_data$year, 
+             source = "energy", value = denmark_data$energy_per_capita),
+  data.frame(country = "Denmark", year = denmark_data$year, 
+             source = "industry", value = denmark_data$industry_per_capita),
+  data.frame(country = "United Kingdom", year = uk_data$year, 
+             source = "energy", value = uk_data$energy_per_capita),
+  data.frame(country = "United Kingdom", year = uk_data$year, 
+             source = "industry", value = uk_data$industry_per_capita)
+)
+
+
+shape_energy <- 17 
+shape_industry <- 16 
+
+
+co2_plot <- ggplot(combined_data, aes(x = year, y = value)) +
+              geom_line(aes(group = source), size = 0.25) +
+              geom_point(aes(shape = source), size = 1.2) + 
+              scale_shape_manual(values=c(energy = shape_energy, industry = shape_industry)) +
+              theme_bw() +  
+              theme(axis.title.x=element_blank(), 
+                    legend.spacing.x  = unit(-0.1, "cm"),
+                    legend.title.align = 0.5,
+                    legend.title = element_blank(),
+                    legend.text = element_text(size = 11),
+                    legend.position = c(.88,.8),
+                    panel.grid.major.y = element_blank(),
+                    panel.grid.major.x = element_blank(),
+                    panel.grid.minor = element_blank(),
+                    axis.title.y = element_text(size =9),
+                    plot.title = element_text(hjust = 0.5),
+                    axis.text.x = element_text(angle =90, vjust = 0.5),
+                    strip.background = element_blank(),
+                    strip.text = element_text(size = 12, color = "black"))+
+              ylab(bquote(""*CO[2]*" tons per capita")) +
+              scale_x_continuous(breaks = seq(1990, 2020, by = 5)) +
+              scale_y_continuous(limits= c(0, 9), expand = c(0,0)) +
+              facet_wrap(~ country, ncol = 2) +
+              guides(linetype = guide_legend(override.aes = list(size = 2)))
+
+co2_plot
+
+
+ggsave('FIG5.png', co2_plot, height = 3, width = 6, units = "in", dpi = 300)
+
 
 # multi panel plots 
-
-
 AUS_plot1 <- ggplot() +
   geom_line(data = subset (data, country == "Australia"), aes(x=year, y=ghg_pop), size = 1) +
   geom_line(data = subset (data, country == "Australia"), aes(x=year, y=(ws_robust)/.025), size =0.2)+
@@ -1336,23 +1387,23 @@ US_plot1 <- ggplot() +
 US_plot1
 
 
-library(ggpubr)
-figure1 <- ggarrange(US_plot1, CAN_plot1, AUS_plot1, IRE_plot1, UK_plot1,  NZ_plot1,
+
+FIG3a <- ggarrange(US_plot1, CAN_plot1, AUS_plot1, IRE_plot1, UK_plot1,  NZ_plot1,
                      JPN_plot1, GRE_plot1, ITA_plot1, SPN_plot1, POR_plot1, FRA_plot1,  
                      ncol = 3, nrow = 4)
-figure1
+FIG3a
 
 
-figure2 <- ggarrange(GER_plot1, AUT_plot1, SWI_plot1, BEL_plot1,  DEN_plot1, FIN_plot1, 
+FIG3b <- ggarrange(GER_plot1, AUT_plot1, SWI_plot1, BEL_plot1,  DEN_plot1, FIN_plot1, 
                      NET_plot1,  SWE_plot1, NOR_plot1,
                      ncol = 3, nrow = 4)
-figure2
+FIG3b
 
 
-ggsave('ghg_cfa1.jpeg',
-       figure1, height = 9, width = 8.5, units = "in", dpi = 700)
+ggsave('FIG3a.png',
+       FIG3a, height = 9, width = 8.5, units = "in", dpi = 300)
 
-ggsave('ghg_cfa2.jpeg',
-       figure2, height = 9, width = 8.5, units = "in", dpi = 700)
+ggsave('FIG3b.png',
+       FIG3b, height = 9, width = 8.5, units = "in", dpi = 300)
 
 
